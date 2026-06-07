@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Inkwell — Your Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e0d;
+    --surface: #1a1917;
+    --surface2: #252320;
+    --border: #2e2c29;
+    --accent: #e8c97d;
+    --accent2: #c47f4b;
+    --text: #f0ece4;
+    --text2: #a09890;
+    --text3: #6b6560;
+    --danger: #c46060;
+    --note-color: #e8c97d;
+    --quote-color: #9bb5d4;
+    --card-color: #b8d4a0;
+    --radius: 16px;
+    --nav-h: 68px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Grain texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 20px 20px 12px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: linear-gradient(to bottom, var(--bg) 80%, transparent);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent); }
+
+  .header-right { display: flex; gap: 10px; align-items: center; }
+
+  .btn-icon {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    transition: all 0.2s;
+  }
+  .btn-icon:active { transform: scale(0.92); background: var(--surface2); }
+
+  /* ── NAV TABS ── */
+  .nav-tabs {
+    display: flex;
+    padding: 0 20px;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 9px 4px;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.25s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    position: relative;
+  }
+
+  .tab .tab-icon { font-size: 18px; }
+  .tab .tab-dot {
+    width: 4px; height: 4px; border-radius: 2px;
+    background: transparent;
+    transition: all 0.3s;
+  }
+
+  .tab.active { color: var(--text); }
+  .tab.active.notes .tab-dot { background: var(--note-color); width: 18px; }
+  .tab.active.quotes .tab-dot { background: var(--quote-color); width: 18px; }
+  .tab.active.cards .tab-dot { background: var(--card-color); width: 18px; }
+
+  /* ── SEARCH ── */
+  .search-wrap {
+    padding: 8px 20px 14px;
+  }
+  .search-box {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0 14px;
+    gap: 10px;
+  }
+  .search-box input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 11px 0;
+  }
+  .search-box input::placeholder { color: var(--text3); }
+  .search-icon { color: var(--text3); font-size: 16px; }
+
+  /* ── CONTENT AREA ── */
+  .content {
+    padding: 0 20px;
+    padding-bottom: calc(var(--nav-h) + 24px);
+    min-height: calc(100vh - 180px);
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 12px;
+    margin-top: 4px;
+  }
+
+  /* ── NOTES ── */
+  .notes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .notes-grid .note-card:first-child { grid-column: 1 / -1; }
+
+  .note-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.3s ease both;
+  }
+  .note-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--note-color);
+    opacity: 0.7;
+  }
+  .note-card:active { transform: scale(0.97); }
+
+  .note-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .note-card p {
+    font-size: 12.5px;
+    color: var(--text2);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .note-meta {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ── QUOTES ── */
+  .quote-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.3s ease both;
+  }
+  .quote-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 3px;
+    background: var(--quote-color);
+    opacity: 0.8;
+  }
+  .quote-card:active { transform: scale(0.98); }
+
+  .quote-mark {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    line-height: 0.7;
+    color: var(--quote-color);
+    opacity: 0.4;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .quote-text {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .quote-author {
+    font-size: 12px;
+    color: var(--quote-color);
+    font-weight: 500;
+  }
+  .quote-source {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  /* ── CARDS ── */
+  .cards-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .card-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: fadeUp 0.3s ease both;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .card-item:active { transform: scale(0.98); }
+
+  .card-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    background: var(--surface2);
+  }
+  .card-body { flex: 1; min-width: 0; }
+  .card-item h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .card-item p {
+    font-size: 12.5px;
+    color: var(--text2);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    background: rgba(184, 212, 160, 0.15);
+    color: var(--card-color);
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    animation: fadeUp 0.4s ease;
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+  .empty-state h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .empty-state p { font-size: 13px; color: var(--text3); line-height: 1.6; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    height: var(--nav-h);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 10px;
+    z-index: 200;
+    backdrop-filter: blur(12px);
+  }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed;
+    bottom: calc(var(--nav-h) + 18px);
+    right: 50%;
+    transform: translateX(calc(50% + 140px));
+    width: 52px; height: 52px;
+    border-radius: 16px;
+    background: var(--accent);
+    color: #1a1000;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    font-weight: 300;
+    box-shadow: 0 4px 20px rgba(232, 201, 125, 0.35);
+    transition: all 0.2s;
+    z-index: 200;
+  }
+  .fab:active { transform: translateX(calc(50% + 140px)) scale(0.92); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    max-width: 480px;
+    left: 50%; transform: translateX(-50%);
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px 20px 40px;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    border-top: 1px solid var(--border);
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .modal-title-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .form-input, .form-textarea, .form-select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .form-input:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-textarea { resize: none; min-height: 130px; line-height: 1.6; }
+  .form-select option { background: var(--surface); }
+
+  .emoji-picker {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .emoji-btn {
+    width: 40px; height: 40px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .emoji-btn.selected { border-color: var(--card-color); background: rgba(184, 212, 160, 0.1); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-primary {
+    flex: 1;
+    padding: 15px;
+    border-radius: 14px;
+    border: none;
+    background: var(--accent);
+    color: #1a1000;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-secondary {
+    padding: 15px 20px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  /* ── VIEW MODAL ── */
+  .view-modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+  .view-modal-text {
+    font-size: 15px;
+    color: var(--text2);
+    line-height: 1.7;
+    margin-bottom: 16px;
+    white-space: pre-wrap;
+  }
+  .view-modal-meta {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 20px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  .view-modal-actions { display: flex; gap: 10px; }
+  .btn-danger {
+    padding: 15px 20px;
+    border-radius: 14px;
+    border: 1px solid rgba(196,96,96,0.3);
+    background: rgba(196,96,96,0.1);
+    color: var(--danger);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--text);
+    z-index: 9000;
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    max-width: 320px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── CONFIG SCREEN ── */
+  .config-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 500;
+    max-width: 480px;
+    left: 50%; transform: translateX(-50%);
+    padding: 40px 24px;
+    overflow-y: auto;
+    display: none;
+  }
+  .config-screen.visible { display: block; }
+  .config-back {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--text2); font-size: 14px;
+    cursor: pointer; margin-bottom: 28px;
+    background: none; border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .config-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .config-sub {
+    font-size: 13px; color: var(--text3);
+    margin-bottom: 32px; line-height: 1.6;
+  }
+  .config-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .config-step-num {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .config-step p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .config-step code {
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 12px;
+    color: var(--accent);
+    font-family: monospace;
+  }
+  .config-save {
+    width: 100%;
+    padding: 15px;
+    border-radius: 14px;
+    background: var(--accent);
+    color: #1a1000;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+
+  /* ── LOADING ── */
+  .loading-overlay {
+    position: fixed;
+    inset: 0; z-index: 400;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    max-width: 480px;
+    left: 50%; transform: translateX(-50%);
+  }
+  .loading-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px; color: var(--accent);
+  }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hidden { display: none !important; }
+
+  /* ── NOTE FULL-SCREEN EDITOR ── */
+  .note-editor {
+    position: fixed;
+    inset: 0;
+    left: 0 !important;
+    transform: translateY(100%) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: var(--bg);
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .note-editor.open {
+    transform: translateY(0) !important;
+  }
+
+  .ne-topbar {
+    display: flex;
+    align-items: center;
+    padding: 52px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .ne-back {
+    font-size: 22px;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 4px 8px 4px 0;
+    line-height: 1;
+  }
+  .ne-heading {
+    flex: 1;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .ne-save {
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    padding: 4px 2px;
+  }
+  .ne-save:active { opacity: 0.6; }
+
+  /* Formatting toolbar */
+  .ne-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+  }
+  .ne-toolbar::-webkit-scrollbar { display: none; }
+  .ne-fmt {
+    min-width: 36px; height: 34px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    padding: 0 8px;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .ne-fmt:active, .ne-fmt.active {
+    background: var(--surface2);
+    color: var(--accent);
+  }
+  .ne-fmt-sep {
+    width: 1px; height: 20px;
+    background: var(--border);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .ne-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 24px 120px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+  }
+  .ne-title {
+    border: none;
+    outline: none;
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text3);
+    width: 100%;
+    margin-bottom: 6px;
+    background: transparent;
+    caret-color: var(--accent);
+  }
+  .ne-title:focus { color: var(--text); }
+  .ne-title::placeholder { color: var(--text3); }
+  .ne-title:not(:placeholder-shown) { color: var(--text); }
+
+  .ne-date {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 22px;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.2px;
+  }
+
+  /* Rich text editor area */
+  .ne-content {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    color: var(--text2);
+    line-height: 1.75;
+    background: transparent;
+    min-height: calc(100vh - 280px);
+    width: 100%;
+    word-break: break-word;
+  }
+  .ne-content:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text3);
+    pointer-events: none;
+  }
+  .ne-content b, .ne-content strong { color: var(--text); font-weight: 700; }
+  .ne-content i, .ne-content em { font-style: italic; color: var(--text); }
+  .ne-content u { text-decoration: underline; }
+  .ne-content s { text-decoration: line-through; color: var(--text3); }
+  .ne-content h1 { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--text); font-weight: 700; margin: 8px 0 4px; }
+  .ne-content h2 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--text); font-weight: 700; margin: 6px 0 4px; }
+  .ne-content ul { padding-left: 18px; margin: 4px 0; }
+  .ne-content ol { padding-left: 18px; margin: 4px 0; }
+  .ne-content li { margin: 2px 0; color: var(--text2); }
+  .ne-content blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 14px;
+    margin: 8px 0;
+    color: var(--text3);
+    font-style: italic;
+  }
+  .ne-content mark {
+    background: rgba(232,201,125,0.25);
+    color: var(--accent);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+  .ne-content a { color: var(--quote-color); text-decoration: underline; }
+  .ne-content hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-logo">✦ Inkwell</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- CONFIG SCREEN -->
+<div class="config-screen" id="configScreen">
+  <button class="config-back" id="configBack">← Back</button>
+  <div class="config-title">Settings</div>
+  <div class="config-sub">Your notepad is live and syncing with Firebase automatically.</div>
+
+  <div class="config-step">
+    <div class="config-step-num">Project</div>
+    <p><code>notepad-7bf67</code></p>
+  </div>
+  <div class="config-step">
+    <div class="config-step-num">Database</div>
+    <p><code>notepad-7bf67-default-rtdb.firebaseio.com</code></p>
+  </div>
+  <div class="config-step">
+    <div class="config-step-num">Status</div>
+    <p>✅ Connected &amp; syncing in real-time</p>
+  </div>
+
+  <button class="config-save" id="saveConfig" style="margin-top:24px;">Done</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">✦ Ink<span>well</span></div>
+    <div class="header-right">
+      <button class="btn-icon" id="syncBtn" title="Sync">↻</button>
+      <button class="btn-icon" id="settingsBtn" title="Settings">⚙</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="nav-tabs">
+    <button class="tab notes active" data-tab="notes" onclick="switchTab('notes')">
+      <span class="tab-icon">📝</span>
+      <span>Notes</span>
+      <div class="tab-dot"></div>
+    </button>
+    <button class="tab quotes" data-tab="quotes" onclick="switchTab('quotes')">
+      <span class="tab-icon">💬</span>
+      <span>Quotes</span>
+      <div class="tab-dot"></div>
+    </button>
+    <button class="tab cards" data-tab="cards" onclick="switchTab('cards')">
+      <span class="tab-icon">🃏</span>
+      <span>Cards</span>
+      <div class="tab-dot"></div>
+    </button>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Search…" oninput="handleSearch()">
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- NOTES VIEW -->
+    <div id="notesView">
+      <div class="section-label" id="notesLabel">All Notes</div>
+      <div class="notes-grid" id="notesList"></div>
+    </div>
+    <!-- QUOTES VIEW -->
+    <div id="quotesView" class="hidden">
+      <div class="section-label" id="quotesLabel">All Quotes</div>
+      <div id="quotesList"></div>
+    </div>
+    <!-- CARDS VIEW -->
+    <div id="cardsView" class="hidden">
+      <div class="section-label" id="cardsLabel">All Cards</div>
+      <div class="cards-list" id="cardsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn">+</button>
+
+<!-- NOTE FULL-SCREEN EDITOR -->
+<div class="note-editor" id="noteEditor">
+  <div class="ne-topbar">
+    <button class="ne-back" id="neBack">&#8592;</button>
+    <span class="ne-heading">Notes</span>
+    <button class="ne-del" id="neDeleteBtn" style="background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:4px 10px;">&#128465;</button>
+    <button class="ne-save" id="saveNoteBtn">Done</button>
+  </div>
+
+  <!-- Formatting toolbar -->
+  <div class="ne-toolbar">
+    <button class="ne-fmt" data-cmd="bold" title="Bold"><b>B</b></button>
+    <button class="ne-fmt" data-cmd="italic" title="Italic"><i>I</i></button>
+    <button class="ne-fmt" data-cmd="underline" title="Underline"><u>U</u></button>
+    <button class="ne-fmt" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="hiliteColor" data-val="#e8c97d40" title="Highlight">&#9678;</button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="formatBlock" data-val="H1" title="Heading 1">H1</button>
+    <button class="ne-fmt" data-cmd="formatBlock" data-val="H2" title="Heading 2">H2</button>
+    <button class="ne-fmt" data-cmd="formatBlock" data-val="P" title="Paragraph">P</button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="insertUnorderedList" title="Bullet list">&#8226;&#8212;</button>
+    <button class="ne-fmt" data-cmd="insertOrderedList" title="Numbered list">1.</button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="formatBlock" data-val="BLOCKQUOTE" title="Quote">&#10077;</button>
+    <button class="ne-fmt" data-cmd="insertHorizontalRule" title="Divider">—</button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="removeFormat" title="Clear format">&#10005;</button>
+  </div>
+
+  <div class="ne-body">
+    <input class="ne-title" id="noteTitleInput" placeholder="Title" maxlength="120">
+    <div class="ne-date" id="neDate"></div>
+    <div class="ne-content" id="noteContentInput"
+         contenteditable="true"
+         data-placeholder="Note something down"
+         spellcheck="true"></div>
+  </div>
+</div>
+
+<!-- QUOTE MODAL -->
+<div class="modal-overlay" id="quoteModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><span class="modal-title-dot" style="background:var(--quote-color)"></span><span id="quoteModalTitle">New Quote</span></div>
+    <div class="form-group">
+      <label class="form-label">Quote</label>
+      <textarea class="form-textarea" id="quoteTextInput" placeholder="Enter the quote…" style="min-height:100px"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Author</label>
+      <input class="form-input" id="quoteAuthorInput" placeholder="Who said it?">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Source (optional)</label>
+      <input class="form-input" id="quoteSourceInput" placeholder="Book, film, speech…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('quoteModal')">Cancel</button>
+      <button class="btn-primary" id="saveQuoteBtn">Save Quote</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARD MODAL -->
+<div class="modal-overlay" id="cardModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><span class="modal-title-dot" style="background:var(--card-color)"></span><span id="cardModalTitle">New Card</span></div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="emoji-picker" id="emojiPicker">
+        <button class="emoji-btn selected" data-emoji="💡">💡</button>
+        <button class="emoji-btn" data-emoji="🔖">🔖</button>
+        <button class="emoji-btn" data-emoji="🎯">🎯</button>
+        <button class="emoji-btn" data-emoji="🌱">🌱</button>
+        <button class="emoji-btn" data-emoji="🔥">🔥</button>
+        <button class="emoji-btn" data-emoji="⚡">⚡</button>
+        <button class="emoji-btn" data-emoji="🧠">🧠</button>
+        <button class="emoji-btn" data-emoji="✨">✨</button>
+        <button class="emoji-btn" data-emoji="📌">📌</button>
+        <button class="emoji-btn" data-emoji="🗂️">🗂️</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input class="form-input" id="cardTitleInput" placeholder="Card title…">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Content</label>
+      <textarea class="form-textarea" id="cardContentInput" placeholder="Details, links, info…" style="min-height:100px"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tag (optional)</label>
+      <input class="form-input" id="cardTagInput" placeholder="e.g. work, idea, resource…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('cardModal')">Cancel</button>
+      <button class="btn-primary" id="saveCardBtn">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="view-modal-title" id="viewTitle"></div>
+    <div class="view-modal-text" id="viewBody"></div>
+    <div class="view-modal-meta" id="viewMeta"></div>
+    <div class="view-modal-actions">
+      <button class="btn-secondary" id="viewEditBtn">✏ Edit</button>
+      <button class="btn-danger" id="viewDeleteBtn">🗑 Delete</button>
+      <button class="btn-primary" onclick="closeModal('viewModal')" style="flex:1">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, get, remove, onValue, push } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ── STATE ──
+let db = null;
+let currentTab = 'notes';
+let currentEditId = null;
+let currentEditType = null;
+let selectedEmoji = '💡';
+let allData = { notes: {}, quotes: {}, cards: {} };
+
+// ── HARDCODED FIREBASE CONFIG ──
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD9JM5URP6TiCjWHPqW8M_Xg69PRezhLCA",
+  authDomain: "notepad-7bf67.firebaseapp.com",
+  databaseURL: "https://notepad-7bf67-default-rtdb.firebaseio.com",
+  projectId: "notepad-7bf67",
+  storageBucket: "notepad-7bf67.firebasestorage.app",
+  messagingSenderId: "968369853386",
+  appId: "1:968369853386:web:715e5769fb2c968d19f533",
+  measurementId: "G-DRCSDELJ8S"
+};
+
+function initFirebase() {
+  try {
+    let app;
+    try { app = initializeApp(FIREBASE_CONFIG, 'inkwell'); }
+    catch (dupErr) { app = getApp('inkwell'); }
+    db = getDatabase(app);
+    return true;
+  } catch (e) {
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+async function startApp() {
+  try {
+    const ok = initFirebase();
+    if (ok) {
+      await loadAllData();
+    } else {
+      showToast('⚠ Firebase failed to connect');
+      renderAll();
+    }
+  } catch (e) {
+    console.error('startApp error:', e);
+    renderAll();
+  } finally {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+}
+
+// ── DATA ──
+async function loadAllData() {
+  if (!db) { renderAll(); return; }
+  try {
+    const snap = await get(ref(db, 'inkwell'));
+    if (snap.exists()) {
+      const data = snap.val();
+      allData.notes = data.notes || {};
+      allData.quotes = data.quotes || {};
+      allData.cards = data.cards || {};
+    }
+  } catch (e) { showToast('⚠ Could not load from Firebase'); }
+  renderAll();
+}
+
+function renderAll() {
+  renderNotes(Object.entries(allData.notes));
+  renderQuotes(Object.entries(allData.quotes));
+  renderCards(Object.entries(allData.cards));
+}
+
+async function saveItem(type, id, data) {
+  allData[type][id] = data;
+  renderAll();
+  if (!db) { showToast('Saved locally (no Firebase)'); return; }
+  try {
+    await set(ref(db, `inkwell/${type}/${id}`), data);
+    showToast('✓ Saved');
+  } catch (e) { showToast('⚠ Save failed: ' + e.message); }
+}
+
+async function deleteItem(type, id) {
+  delete allData[type][id];
+  renderAll();
+  if (!db) return;
+  try {
+    await remove(ref(db, `inkwell/${type}/${id}`));
+    showToast('Deleted');
+  } catch (e) { showToast('⚠ Delete failed'); }
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+// ── RENDER ──
+function formatDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html || '';
+  return tmp.textContent || tmp.innerText || '';
+}
+
+function renderNotes(entries) {
+  const list = document.getElementById('notesList');
+  if (!entries.length) {
+    list.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">📝</div>
+      <h3>No notes yet</h3>
+      <p>Tap the + button to capture your first thought.</p>
+    </div>`;
+    return;
+  }
+  entries.sort((a,b) => (b[1].ts||0)-(a[1].ts||0));
+  list.innerHTML = entries.map(([id,n]) => `
+    <div class="note-card" onclick="openNoteEditor('${id}')">
+      <h3>${escHtml(n.title||'Untitled')}</h3>
+      <p>${escHtml(stripHtml(n.content))}</p>
+      <div class="note-meta">
+        <span>${formatDate(n.ts)}</span>
+        <span>${wordCount(stripHtml(n.content))} words</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderQuotes(entries) {
+  const list = document.getElementById('quotesList');
+  if (!entries.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">💬</div>
+      <h3>No quotes yet</h3>
+      <p>Save words that move you.</p>
+    </div>`;
+    return;
+  }
+  entries.sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
+  list.innerHTML = entries.map(([id,q]) => `
+    <div class="quote-card" onclick="openViewModal('quotes','${id}')">
+      <span class="quote-mark">"</span>
+      <div class="quote-text">${escHtml(q.text||'')}</div>
+      <div class="quote-author">— ${escHtml(q.author||'Unknown')}</div>
+      ${q.source ? `<div class="quote-source">${escHtml(q.source)}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderCards(entries) {
+  const list = document.getElementById('cardsList');
+  if (!entries.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🃏</div>
+      <h3>No cards yet</h3>
+      <p>Cards are great for resources, ideas, or references.</p>
+    </div>`;
+    return;
+  }
+  entries.sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
+  list.innerHTML = entries.map(([id,c]) => `
+    <div class="card-item" onclick="openViewModal('cards','${id}')">
+      <div class="card-icon">${c.icon||'💡'}</div>
+      <div class="card-body">
+        <h3>${escHtml(c.title||'Untitled')}</h3>
+        <p>${escHtml(c.content||'')}</p>
+        ${c.tag ? `<span class="card-tag">${escHtml(c.tag)}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ── SEARCH ──
+window.handleSearch = function() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (!q) { renderAll(); return; }
+  const filterNotes = Object.entries(allData.notes).filter(([,n]) =>
+    (n.title||'').toLowerCase().includes(q) || (n.content||'').toLowerCase().includes(q));
+  const filterQuotes = Object.entries(allData.quotes).filter(([,q2]) =>
+    (q2.text||'').toLowerCase().includes(q) || (q2.author||'').toLowerCase().includes(q));
+  const filterCards = Object.entries(allData.cards).filter(([,c]) =>
+    (c.title||'').toLowerCase().includes(q) || (c.content||'').toLowerCase().includes(q) || (c.tag||'').toLowerCase().includes(q));
+  renderNotes(filterNotes);
+  renderQuotes(filterQuotes);
+  renderCards(filterCards);
+}
+
+// ── TABS ──
+window.switchTab = function(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===tab));
+  document.getElementById('notesView').classList.toggle('hidden', tab!=='notes');
+  document.getElementById('quotesView').classList.toggle('hidden', tab!=='quotes');
+  document.getElementById('cardsView').classList.toggle('hidden', tab!=='cards');
+}
+
+// ── FAB ──
+document.getElementById('fabBtn').onclick = () => {
+  currentEditId = null;
+  if (currentTab === 'notes') openNoteModal();
+  else if (currentTab === 'quotes') openQuoteModal();
+  else openCardModal();
+};
+
+// ── NOTE FULL-SCREEN EDITOR ──
+function openNoteModal(data) {
+  const now = data?.ts ? new Date(data.ts) : new Date();
+  document.getElementById('neDate').textContent = now.toLocaleString('en-US', {
+    month: '2-digit', day: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+  document.getElementById('noteTitleInput').value = data?.title || '';
+  const ce = document.getElementById('noteContentInput');
+  ce.innerHTML = data?.content || '';
+  document.getElementById('noteEditor').classList.add('open');
+  setTimeout(() => {
+    if (data?.title) ce.focus();
+    else document.getElementById('noteTitleInput').focus();
+  }, 120);
+}
+
+function closeNoteEditor() {
+  document.getElementById('noteEditor').classList.remove('open');
+}
+
+document.getElementById('neBack').onclick = closeNoteEditor;
+
+document.getElementById('neDeleteBtn').onclick = async () => {
+  if (!currentEditId) { closeNoteEditor(); return; }
+  await deleteItem('notes', currentEditId);
+  closeNoteEditor();
+};
+
+document.getElementById('saveNoteBtn').onclick = async () => {
+  const title = document.getElementById('noteTitleInput').value.trim();
+  const ce = document.getElementById('noteContentInput');
+  const content = ce.innerHTML.trim();
+  if (!title && (!content || content === '<br>')) { closeNoteEditor(); return; }
+  const id = currentEditId || generateId();
+  await saveItem('notes', id, { title, content, ts: Date.now() });
+  closeNoteEditor();
+};
+
+// Formatting toolbar
+document.querySelector('.ne-toolbar').addEventListener('click', e => {
+  const btn = e.target.closest('.ne-fmt');
+  if (!btn) return;
+  const cmd = btn.dataset.cmd;
+  const val = btn.dataset.val || null;
+  document.getElementById('noteContentInput').focus();
+  document.execCommand(cmd, false, val);
+  // Toggle active style for stateful commands
+  ['bold','italic','underline','strikeThrough'].forEach(c => {
+    const el = document.querySelector(`.ne-fmt[data-cmd="${c}"]`);
+    if (el) el.classList.toggle('active', document.queryCommandState(c));
+  });
+});
+
+// Update toolbar active states on selection change
+document.addEventListener('selectionchange', () => {
+  if (!document.getElementById('noteEditor').classList.contains('open')) return;
+  ['bold','italic','underline','strikeThrough'].forEach(c => {
+    const el = document.querySelector(`.ne-fmt[data-cmd="${c}"]`);
+    if (el) el.classList.toggle('active', document.queryCommandState(c));
+  });
+});
+
+// ── QUOTE MODAL ──
+function openQuoteModal(data) {
+  document.getElementById('quoteModalTitle').textContent = currentEditId ? 'Edit Quote' : 'New Quote';
+  document.getElementById('quoteTextInput').value = data?.text || '';
+  document.getElementById('quoteAuthorInput').value = data?.author || '';
+  document.getElementById('quoteSourceInput').value = data?.source || '';
+  openModal('quoteModal');
+}
+
+document.getElementById('saveQuoteBtn').onclick = async () => {
+  const text = document.getElementById('quoteTextInput').value.trim();
+  const author = document.getElementById('quoteAuthorInput').value.trim();
+  const source = document.getElementById('quoteSourceInput').value.trim();
+  if (!text) { showToast('Enter the quote first!'); return; }
+  const id = currentEditId || generateId();
+  await saveItem('quotes', id, { text, author, source, ts: Date.now() });
+  closeModal('quoteModal');
+};
+
+// ── CARD MODAL ──
+function openCardModal(data) {
+  document.getElementById('cardModalTitle').textContent = currentEditId ? 'Edit Card' : 'New Card';
+  document.getElementById('cardTitleInput').value = data?.title || '';
+  document.getElementById('cardContentInput').value = data?.content || '';
+  document.getElementById('cardTagInput').value = data?.tag || '';
+  selectedEmoji = data?.icon || '💡';
+  document.querySelectorAll('.emoji-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.emoji === selectedEmoji);
+  });
+  openModal('cardModal');
+}
+
+document.getElementById('emojiPicker').onclick = e => {
+  const btn = e.target.closest('.emoji-btn');
+  if (!btn) return;
+  selectedEmoji = btn.dataset.emoji;
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('selected', b===btn));
+};
+
+document.getElementById('saveCardBtn').onclick = async () => {
+  const title = document.getElementById('cardTitleInput').value.trim();
+  const content = document.getElementById('cardContentInput').value.trim();
+  const tag = document.getElementById('cardTagInput').value.trim();
+  if (!title) { showToast('Give the card a title!'); return; }
+  const id = currentEditId || generateId();
+  await saveItem('cards', id, { title, content, tag, icon: selectedEmoji, ts: Date.now() });
+  closeModal('cardModal');
+};
+
+// ── VIEW MODAL ──
+// Open note directly in editor (no intermediate modal)
+window.openNoteEditor = function(id) {
+  const item = allData['notes'][id];
+  if (!item) return;
+  currentEditType = 'notes';
+  currentEditId = id;
+  openNoteModal(item);
+};
+
+window.openViewModal = function(type, id) {
+  // Notes go straight to editor; only quotes/cards use the view modal
+  if (type === 'notes') { window.openNoteEditor(id); return; }
+  const item = allData[type][id];
+  if (!item) return;
+  currentEditType = type;
+  currentEditId = id;
+
+  let title = '', body = '', meta = '';
+  if (type === 'quotes') {
+    title = '"' + (item.text || '') + '"';
+    body = '— ' + (item.author || 'Unknown') + (item.source ? '\n' + item.source : '');
+    meta = 'Saved ' + formatDate(item.ts);
+  } else {
+    title = (item.icon||'💡') + ' ' + (item.title||'Untitled');
+    body = item.content || '';
+    meta = (item.tag ? '#'+item.tag+' · ' : '') + 'Saved ' + formatDate(item.ts);
+  }
+
+  document.getElementById('viewTitle').textContent = title;
+  document.getElementById('viewBody').textContent = body;
+  document.getElementById('viewMeta').textContent = meta;
+  openModal('viewModal');
+};
+
+document.getElementById('viewEditBtn').onclick = () => {
+  const type = currentEditType;
+  const id = currentEditId;
+  closeModal('viewModal');
+  setTimeout(() => {
+    const item = allData[type][id];
+    currentEditType = type;
+    currentEditId = id;
+    if (type === 'notes') openNoteModal(item);
+    else if (type === 'quotes') openQuoteModal(item);
+    else openCardModal(item);
+  }, 300);
+};
+
+document.getElementById('viewDeleteBtn').onclick = async () => {
+  await deleteItem(currentEditType, currentEditId);
+  closeModal('viewModal');
+};
+
+// ── CONFIG ──
+document.getElementById('settingsBtn').onclick = () => {
+  document.getElementById('configScreen').classList.add('visible');
+};
+document.getElementById('configBack').onclick = () => {
+  document.getElementById('configScreen').classList.remove('visible');
+};
+
+document.getElementById('saveConfig').onclick = async () => {
+  document.getElementById('configScreen').classList.remove('visible');
+  showToast('✓ Already connected to Firebase!');
+};
+
+document.getElementById('syncBtn').onclick = async () => {
+  document.getElementById('syncBtn').style.transform = 'rotate(360deg)';
+  document.getElementById('syncBtn').style.transition = 'transform 0.6s';
+  await loadAllData();
+  setTimeout(() => {
+    document.getElementById('syncBtn').style.transform = '';
+    document.getElementById('syncBtn').style.transition = '';
+  }, 700);
+  showToast('✓ Synced');
+};
+
+// ── HELPERS ──
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+window.closeModal = function(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function escHtml(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function wordCount(str) {
+  return (str||'').trim().split(/\s+/).filter(Boolean).length;
+}
+
+// ── BOOT ──
+startApp();
+</script>
+</body>
+</html>
