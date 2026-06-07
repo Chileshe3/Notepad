@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Inkwell — Your Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-logo">✦ Inkwell</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- CONFIG SCREEN -->
+<div class="config-screen" id="configScreen">
+  <button class="config-back" id="configBack">← Back</button>
+  <div class="config-title">Settings</div>
+  <div class="config-sub">Your notepad is live and syncing with Firebase automatically.</div>
+
+  <div class="config-step">
+    <div class="config-step-num">Project</div>
+    <p><code>notepad-7bf67</code></p>
+  </div>
+  <div class="config-step">
+    <div class="config-step-num">Database</div>
+    <p><code>notepad-7bf67-default-rtdb.firebaseio.com</code></p>
+  </div>
+  <div class="config-step">
+    <div class="config-step-num">Status</div>
+    <p>✅ Connected &amp; syncing in real-time</p>
+  </div>
+
+  <button class="config-save" id="saveConfig" style="margin-top:24px;">Done</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">✦ Ink<span>well</span></div>
+    <div class="header-right">
+      <button class="btn-icon" id="syncBtn" title="Sync">↻</button>
+      <button class="btn-icon" id="settingsBtn" title="Settings">⚙</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="nav-tabs">
+    <button class="tab notes active" data-tab="notes" onclick="switchTab('notes')">
+      <span class="tab-icon">📝</span>
+      <span>Notes</span>
+      <div class="tab-dot"></div>
+    </button>
+    <button class="tab quotes" data-tab="quotes" onclick="switchTab('quotes')">
+      <span class="tab-icon">💬</span>
+      <span>Quotes</span>
+      <div class="tab-dot"></div>
+    </button>
+    <button class="tab cards" data-tab="cards" onclick="switchTab('cards')">
+      <span class="tab-icon">🃏</span>
+      <span>Cards</span>
+      <div class="tab-dot"></div>
+    </button>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Search…" oninput="handleSearch()">
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- NOTES VIEW -->
+    <div id="notesView">
+      <div class="section-label" id="notesLabel">All Notes</div>
+      <div class="notes-grid" id="notesList"></div>
+    </div>
+    <!-- QUOTES VIEW -->
+    <div id="quotesView" class="hidden">
+      <div class="section-label" id="quotesLabel">All Quotes</div>
+      <div id="quotesList"></div>
+    </div>
+    <!-- CARDS VIEW -->
+    <div id="cardsView" class="hidden">
+      <div class="section-label" id="cardsLabel">All Cards</div>
+      <div class="cards-list" id="cardsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn">+</button>
+
+<!-- NOTE FULL-SCREEN EDITOR -->
+<div class="note-editor" id="noteEditor">
+  <div class="ne-topbar">
+    <button class="ne-back" id="neBack">&#8592;</button>
+    <span class="ne-heading">Notes</span>
+    <button class="ne-del" id="neDeleteBtn" style="background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:4px 10px;">&#128465;</button>
+    <button class="ne-save" id="saveNoteBtn">Done</button>
+  </div>
+
+  <!-- Formatting toolbar -->
+  <div class="ne-toolbar">
+    <button class="ne-fmt" data-cmd="bold" title="Bold"><b>B</b></button>
+    <button class="ne-fmt" data-cmd="italic" title="Italic"><i>I</i></button>
+    <button class="ne-fmt" data-cmd="underline" title="Underline"><u>U</u></button>
+    <button class="ne-fmt" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="hiliteColor" data-val="#e8c97d40" title="Highlight">&#9678;</button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="formatBlock" data-val="H1" title="Heading 1">H1</button>
+    <button class="ne-fmt" data-cmd="formatBlock" data-val="H2" title="Heading 2">H2</button>
+    <button class="ne-fmt" data-cmd="formatBlock" data-val="P" title="Paragraph">P</button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="insertUnorderedList" title="Bullet list">&#8226;&#8212;</button>
+    <button class="ne-fmt" data-cmd="insertOrderedList" title="Numbered list">1.</button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="formatBlock" data-val="BLOCKQUOTE" title="Quote">&#10077;</button>
+    <button class="ne-fmt" data-cmd="insertHorizontalRule" title="Divider">—</button>
+    <div class="ne-fmt-sep"></div>
+    <button class="ne-fmt" data-cmd="removeFormat" title="Clear format">&#10005;</button>
+  </div>
+
+  <div class="ne-body">
+    <input class="ne-title" id="noteTitleInput" placeholder="Title" maxlength="120">
+    <div class="ne-date" id="neDate"></div>
+    <div class="ne-content" id="noteContentInput"
+         contenteditable="true"
+         data-placeholder="Note something down"
+         spellcheck="true"></div>
+  </div>
+</div>
+
+<!-- QUOTE MODAL -->
+<div class="modal-overlay" id="quoteModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><span class="modal-title-dot" style="background:var(--quote-color)"></span><span id="quoteModalTitle">New Quote</span></div>
+    <div class="form-group">
+      <label class="form-label">Quote</label>
+      <textarea class="form-textarea" id="quoteTextInput" placeholder="Enter the quote…" style="min-height:100px"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Author</label>
+      <input class="form-input" id="quoteAuthorInput" placeholder="Who said it?">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Source (optional)</label>
+      <input class="form-input" id="quoteSourceInput" placeholder="Book, film, speech…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('quoteModal')">Cancel</button>
+      <button class="btn-primary" id="saveQuoteBtn">Save Quote</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARD MODAL -->
+<div class="modal-overlay" id="cardModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><span class="modal-title-dot" style="background:var(--card-color)"></span><span id="cardModalTitle">New Card</span></div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="emoji-picker" id="emojiPicker">
+        <button class="emoji-btn selected" data-emoji="💡">💡</button>
+        <button class="emoji-btn" data-emoji="🔖">🔖</button>
+        <button class="emoji-btn" data-emoji="🎯">🎯</button>
+        <button class="emoji-btn" data-emoji="🌱">🌱</button>
+        <button class="emoji-btn" data-emoji="🔥">🔥</button>
+        <button class="emoji-btn" data-emoji="⚡">⚡</button>
+        <button class="emoji-btn" data-emoji="🧠">🧠</button>
+        <button class="emoji-btn" data-emoji="✨">✨</button>
+        <button class="emoji-btn" data-emoji="📌">📌</button>
+        <button class="emoji-btn" data-emoji="🗂️">🗂️</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input class="form-input" id="cardTitleInput" placeholder="Card title…">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Content</label>
+      <textarea class="form-textarea" id="cardContentInput" placeholder="Details, links, info…" style="min-height:100px"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tag (optional)</label>
+      <input class="form-input" id="cardTagInput" placeholder="e.g. work, idea, resource…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('cardModal')">Cancel</button>
+      <button class="btn-primary" id="saveCardBtn">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="view-modal-title" id="viewTitle"></div>
+    <div class="view-modal-text" id="viewBody"></div>
+    <div class="view-modal-meta" id="viewMeta"></div>
+    <div class="view-modal-actions">
+      <button class="btn-secondary" id="viewEditBtn">✏ Edit</button>
+      <button class="btn-danger" id="viewDeleteBtn">🗑 Delete</button>
+      <button class="btn-primary" onclick="closeModal('viewModal')" style="flex:1">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
